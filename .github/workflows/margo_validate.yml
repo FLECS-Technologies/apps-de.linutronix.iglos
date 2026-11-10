@@ -1,0 +1,29 @@
+name: "Margo validate"
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      bart-version:
+        description: Tag of the bart image to run
+        required: false
+        default: latest
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  margo-validate:
+    runs-on: ubuntu-latest
+    env:
+      BART_IMAGE: cr.flecs.tech/flecs/bart:${{ inputs.bart-version || 'latest' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: bart validate
+        run: |
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/workspace" \
+            -w /workspace \
+            "${BART_IMAGE}" \
+            validate

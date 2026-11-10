@@ -1,0 +1,74 @@
+name: "Margo push"
+on:
+  workflow_call:
+    inputs:
+      iglos-version:
+        description: IGLOS update image version, also used as the Margo app version
+        required: true
+        type: string
+      bart-version:
+        description: Tag of the bart image to run
+        required: false
+        default: latest
+        type: string
+    secrets:
+      BART_REGISTRY_USER:
+        required: true
+      BART_REGISTRY_TOKEN:
+        required: true
+  workflow_dispatch:
+    inputs:
+      iglos-version:
+        description: IGLOS update image version, also used as the Margo app version
+        required: true
+        type: string
+      bart-version:
+        description: Tag of the bart image to run
+        required: false
+        default: latest
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  margo-push:
+    runs-on: ubuntu-latest
+    env:
+      BART_IMAGE: cr.flecs.tech/flecs/bart:${{ inputs.bart-version }}
+      IGLOS_VERSION: ${{ inputs.iglos-version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Pin IGLOS update image to ${{ env.IGLOS_VERSION }}
+        run: |
+          set -eu
+          sed -Ei \
+            -e "s|IGLOS_Tutorial_Web_App_[^/]*\.swu|IGLOS_Tutorial_Web_App_${IGLOS_VERSION}.swu|" \
+            -e "s|^(\s{10}version:\s*).*$|\1\"${IGLOS_VERSION}\"|" \
+            app/margo.yaml
+          grep -Eq "IGLOS_Tutorial_Web_App_${IGLOS_VERSION}\.swu$" app/margo.yaml
+          grep -Eq "^\s{10}version: \"${IGLOS_VERSION}\"$" app/margo.yaml
+
+      # The device fetches the image itself, make sure it is there
+      - name: Check IGLOS update image ${{ env.IGLOS_VERSION }} exists
+        run: |
+          set -eu
+          SOURCE=$(sed -En 's|^\s*source:\s*(\S+)$|\1|p' app/margo.yaml)
+          if ! curl -fsSI "${SOURCE}" >/dev/null; then
+            echo "::error file=app/margo.yaml::IGLOS update image not reachable: ${SOURCE}"
+            exit 1
+          fi
+
+      - name: bart push
+        env:
+          BART_REGISTRY_USER: ${{ secrets.BART_REGISTRY_USER }}
+          BART_REGISTRY_TOKEN: ${{ secrets.BART_REGISTRY_TOKEN }}
+        run: |
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}:/workspace" \
+            -w /workspace \
+            -e BART_REGISTRY_USER \
+            -e BART_REGISTRY_TOKEN \
+            "${BART_IMAGE}" \
+            push --version "${IGLOS_VERSION}"

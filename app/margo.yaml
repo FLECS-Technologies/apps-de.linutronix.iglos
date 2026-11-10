@@ -1,0 +1,48 @@
+apiVersion: margo/v1alpha1
+kind: ApplicationDescription
+id: de-linutronix-iglos
+metadata:
+  name: IGLOS
+  version: "0.0.0" # overwritten by `bart`, this is just a placeholder
+  description: >-
+    IGLOS (Industrial Grade Linux Operating System) is a Debian-based
+    embedded Linux platform built on the mainline kernel, certified to
+    IEC 62443-4-1 and 4-2 at Security Level 2. This application updates
+    an IGLOS device to the IGLOS tutorial image with the demo web server.
+    The update is applied natively by the device's WFM client as an A/B
+    SWUpdate image (.swu) and takes effect after switching slots. The
+    tutorial image is intentionally insecure and meant for exploration
+    only, not for production use.
+  catalog:
+    organization:
+      - name: Linutronix GmbH
+        site: https://www.linutronix.de
+    application:
+      tagline: Shaping Security for Embedded Systems.
+      icon: icon.png
+      releaseNotes: release-notes.md
+      site: https://www.iglos.com
+      tags:
+        - operating-system
+        - embedded-linux
+        - security
+        - ota-update
+    author:
+      - name: Linutronix GmbH
+        email: info@linutronix.de
+deploymentProfiles:
+  - type: native
+    id: default
+    description: >-
+      A/B update of the IGLOS tutorial image (Raspberry Pi 5), installed
+      with SWUpdate into the inactive slot and activated afterwards.
+    components:
+      - name: iglos-tutorial-web-app
+        properties:
+          source: https://nextcloud.linutronix.de/public.php/dav/files/4wMznQdFKCitEcb/IGLOS_Tutorial_Web_App_13.7.1.swu
+          version: "13.7.1"
+    requiredResources:
+      cpu:
+        cores: 1
+        architectures:
+          - arm64

@@ -3,10 +3,25 @@ on:
   release:
     types:
       - released
+  workflow_dispatch:
+    inputs:
+      version:
+        description: IGLOS version to release
+        required: true
+        type: string
+      bart-version:
+        description: Tag of the bart image to run
+        required: false
+        default: latest
+        type: string
+
+permissions:
+  contents: read
+
 jobs:
-  app-release:
-    uses: FLECS-Technologies/app-sdk/.github/workflows/app_release.yml@main
+  margo-push:
+    uses: ./.github/workflows/margo_push.yml
     secrets: inherit
     with:
-      release-tag: ${{ github.event.release.tag_name }}
-      app-version: ${{ github.event.release.tag_name }}
+      iglos-version: ${{ github.event.release.tag_name || inputs.version }}
+      bart-version: ${{ inputs.bart-version || 'latest' }}
